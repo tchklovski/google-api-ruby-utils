@@ -69,9 +69,9 @@ module Calendar
     end
 
     def make_upcoming_filter(num_days)
-      num_days = (num_days || 1).to_f
       now=Time.now
-      starts_before = now.start_of_day + (num_days*@@day + 3*@@hour) # 3am of num_days from today
+      # set starts_before to 3am of num_days from today
+      starts_before = now.start_of_day + (num_days*@@day + 3*@@hour)
       ends_after = now  # want to specify starts_after, but that's not provided
       return {
         :timeMax => starts_before.iso8601,
@@ -94,7 +94,6 @@ end
 
 module Calendar
   class GoogleAPIClient < ::Google::APIClient
-    attr_reader :client
     def initialize(oauth)
       super
       authorization.client_id     = oauth["client_id"]
@@ -105,17 +104,18 @@ module Calendar
 
       # NB: seems authorization.expired? does not work b/c times are not stored
       # in the yaml -- so we just call authorization.fetch_access_token! on error
-      # see update_token! in http://code.google.com/p/google-api-ruby-client/wiki/OAuth2
+      # see update_token! in
+      # http://code.google.com/p/google-api-ruby-client/wiki/OAuth2
       #if authorization.refresh_token && authorization.expired?
       #  authorization.fetch_access_token!
       #end
     end
 
-    def fetch_data_with_retry(api_method, params)
-      data = execute_aux(api_method, params).data
-      if data_error(data) # try refereshing the access token and updating the data
+    def fetch_data_with_retry(api_method, query)
+      data = execute_aux(api_method, query).data
+      if data_error(data) # retry executing after refereshing access_token
         authorization.fetch_access_token!
-        data = execute_aux(api_method, params).data
+        data = execute_aux(api_method, query).data
       end
       if err = data_error(data) # raise exception if still an error
         raise RuntimeError, err.to_json
@@ -124,8 +124,8 @@ module Calendar
     end
 
     private
-    def execute_aux(api_method, params)
-      execute(:api_method => api_method, :parameters => params)
+    def execute_aux(api_method, parameters)
+      execute(:api_method => api_method, :parameters => parameters)
     end
 
     def data_error(data)
@@ -136,14 +136,19 @@ end
 
 module Calendar
   class GoogleCalendarClient < GoogleAPIClient
+# Query params are described in:
+# https://developers.google.com/google-apps/calendar/v3/reference/events/list
+
     def events(query)
       Enumerator.new {|y| events_aux(query){|event| y << event}}
     end
 
     def upcoming_events(query, num_days)
-      updated_query = query.update(Calendar::Time.new.make_upcoming_filter(num_days))
-      events(updated_query).find_all do |event|
-        # TODO: consider including the recently started (like 15 mins?) to handle running late.
+      t=Calendar::Time.new
+      query = query.update(t.make_upcoming_filter(num_days))
+      events(query).find_all do |event|
+        # TODO: consider including the recently started (like 15 mins?)
+        # to handle running late.
         event.extend(EventSugar).starts_after? Time.now
       end
     end
@@ -157,10 +162,8 @@ module Calendar
       end
     end
 
-    # Params are as described in:
-    # https://developers.google.com/google-apps/calendar/v3/reference/events/list
-    def list_events(params)
-      fetch_data_with_retry(calendar_service.events.list, params)
+    def list_events(calendar_query)
+      fetch_data_with_retry(calendar_service.events.list, calendar_query)
     end
 
     def calendar_service
@@ -169,17 +172,22 @@ module Calendar
   end
 end
 
-opts = Slop.parse(:help => true) do
-  banner "#{$0} [options]
+def parse_command_line_opts
+  opts = Slop.parse(:help => true) do
+    banner "#{$0} [options]
   Fetch calendar events from Google via Google Calendar API.
 
   Prints to stdout, as json, the events on the requested calendar.\n"
 
-  on :calendar=, 'calendar id (defaults to "primary")', :default => 'primary'
-  on 'upcoming=?', 'events that start before 3am of next day and end after now.
+    on :calendar=, 'calendar id (defaults to "primary")', :default => 'primary'
+    on 'upcoming=?',
+    'events that start before 3am of next day and end after now.
                         Provide a number to make it that many days ahead.',
-  :as => :float, :default => 1
+    :as => :float, :default => 1
+  end
 end
+
+opts = parse_command_line_opts
 exit if opts.help?
 
 cal = Calendar::GoogleCalendarClient.new(OAuth::Google.load)
