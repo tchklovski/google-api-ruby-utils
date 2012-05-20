@@ -16,8 +16,8 @@ Assumes you're using RVM. Tested with ruby1.9.3
     cd google-api-ruby-utils
     ./fetch-google-calendar --help
 
-If oauth is not initialized when you request results, the script will output an explanation
-of what it needs for Google API OAuth.
+If oauth is not initialized when you request results, the script will output
+an explanation of what it needs for Google API OAuth.
 
 
 ## Author

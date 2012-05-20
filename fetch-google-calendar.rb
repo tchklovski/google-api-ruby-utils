@@ -6,9 +6,9 @@
 # You can specify which of the shared calendars (the default is primary) to access,
 # and whether you want all or just upcoming.
 
-# See README.md for installation and reference
+# See README.md for installation
 
-# reference:
+# Reference:
 # https://developers.google.com/google-apps/calendar/setup
 # https://developers.google.com/google-apps/calendar/instantiate
 # https://developers.google.com/google-apps/calendar/v3/reference/events/list#examples
@@ -27,28 +27,29 @@ module OAuth
         if File.exist?(@@config_file)
           return YAML.load_file(@@config_file)
         else
-          warn "#@@config_file not found"
+          warn "ERROR: #@@config_file not found"
           self.abort_config_needed
         end
       end
 
       def abort_config_needed
         abort <<INTRO_TO_AUTH
-    This utility requires valid oauth credentials and token for your project in the
-    config file '#@@config_file'.
 
-    You can create it by jumping through some oauth hoops by setting up a project and then
-    using the google-api command, provided by the google-api-client gem:
+  This utility requires valid oauth credentials and token for your project in
+  the config file '#@@config_file'.
 
-    - Go to Google API Console at https://code.google.com/apis/console/ and set up a project
-      that you will use to access this data.
-     - In the "API Access" section, in the list of "Redirect URIs" include
-       'http://localhost:12736/'.
-     - Get your project's CLIENT_ID and CLIENT_SECRET to use below.
+  You can create it by jumping through some oauth hoops by setting up a project
+  and then using the google-api command, provided by the google-api-client gem:
 
-    - Users (including you) will need to grant permissions to access their calendars.
-     - Generate the config file '#@@config_file' by calling the following, which will launch
-       the browser and write the config file:
+  - Go to Google API Console at https://code.google.com/apis/console/ and
+    set up a project that you will use to access this data.
+  - In the "API Access" section, in the list of "Redirect URIs" include
+    'http://localhost:12736/'.
+  - Get your project's CLIENT_ID and CLIENT_SECRET to use below.
+  - Users (including you) need to grant permissions to access their calendars.
+   - Generate the config file '#@@config_file' by calling the following, which
+     will launch the browser and write the config file:
+
     (LD_LIBRARY_PATH=
      CLIENT_ID=[YOUR-CLIENT_ID]
      CLIENT_SECRET=[YOUR-CLIENT-SECRET]
