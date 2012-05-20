@@ -173,13 +173,16 @@ module Calendar
 end
 
 def parse_command_line_opts
-  opts = Slop.parse(:help => true) do
-    banner "#{$0} [options]
+  Slop.parse(:help => true) do
+    banner <<BANNER
+#{$0} [options]
   Fetch calendar events from Google via Google Calendar API.
 
-  Prints to stdout, as json, the events on the requested calendar.\n"
+  Prints to stdout, as json, the events on the requested calendar.
+BANNER
 
-    on :calendar=, 'calendar id (defaults to "primary")', :default => 'primary'
+    on :c, :calendar=, 'calendar id (defaults to "primary")',
+    :default => 'primary'
     on 'upcoming=?',
     'events that start before 3am of next day and end after now.
                         Provide a number to make it that many days ahead.',
